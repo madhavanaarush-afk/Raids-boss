@@ -11,7 +11,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="?", intents=intents)
 
-MAIN_CHANNEL_ID = 123456789012345678
+MAIN_CHANNEL_ID = 1484694223578988564
 watch_channels = set()
 
 url_pattern = re.compile(r"(https?://\S+)")
