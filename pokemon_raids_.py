@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import re
 import os
 
 # 🔐 TOKEN Railway se aayega
@@ -11,26 +10,31 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="?", intents=intents)
 
+# 👉 apna main channel ID daal
 MAIN_CHANNEL_ID = 1484694223578988564
+
+# 👉 jaha se messages lena hai
 watch_channels = set()
 
-url_pattern = re.compile(r"(https?://\S+)")
 
 @bot.event
 async def on_ready():
     print("🔥 BOT READY 🔥")
     print(f"Logged in as {bot.user}")
 
-# ✅ ping command (test)
+
+# ✅ test command
 @bot.command()
 async def ping(ctx):
     await ctx.send("pong 🏓")
+
 
 # ✅ add channel
 @bot.command()
 async def add(ctx, channel_id: int):
     watch_channels.add(channel_id)
     await ctx.send(f"✅ Added {channel_id}")
+
 
 @bot.event
 async def on_message(message):
@@ -40,61 +44,40 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # ❌ avoid loop
-    if message.channel.id == MAIN_CHANNEL_ID:
+    # ❌ sirf BOT messages allow
+    if not message.author.bot:
         return
 
-    # ❌ only selected channels
+    # ❌ sirf selected channels
     if message.channel.id not in watch_channels:
+        return
+
+    # ❌ main channel loop avoid
+    if message.channel.id == MAIN_CHANNEL_ID:
         return
 
     main = bot.get_channel(MAIN_CHANNEL_ID)
     if not main:
-        print("Main channel not found")
         return
 
-    urls = []
-    images = []
+    image_url = None
+    final_url = None
 
-    # 🔗 TEXT URL
-    if message.content:
-        urls += url_pattern.findall(message.content)
-
-    # 📸 ATTACHMENTS
+    # 📸 attachments se image
     for att in message.attachments:
         if att.content_type and "image" in att.content_type:
-            images.append(att.url)
+            image_url = att.url
 
-    # 💥 EMBEDS
-    embeds_to_send = []
-
+    # 💥 embeds se image + url
     for emb in message.embeds:
-        print("Embed detected")
-
-        new_embed = discord.Embed(
-            title=emb.title,
-            description=emb.description,
-            color=0x00ff88,
-            timestamp=message.created_at
-        )
-
         if emb.image and emb.image.url:
-            images.append(emb.image.url)
-            new_embed.set_image(url=emb.image.url)
-
-        if emb.thumbnail and emb.thumbnail.url:
-            new_embed.set_thumbnail(url=emb.thumbnail.url)
-
-        if emb.description:
-            urls += url_pattern.findall(emb.description)
+            image_url = emb.image.url
 
         if emb.url:
-            urls.append(emb.url)
+            final_url = emb.url
 
-        embeds_to_send.append(new_embed)
-
-    if not embeds_to_send and not urls and not images and not message.content:
-        print("Nothing detected")
+    # ❌ agar image nahi mila to ignore
+    if not image_url:
         return
 
     # 🔘 JOIN BUTTON
@@ -106,27 +89,21 @@ async def on_message(message):
         )
     )
 
-    # 📤 SEND
-    if embeds_to_send:
-        for e in embeds_to_send:
-            await main.send(embed=e, view=view)
-    else:
-        embed = discord.Embed(
-            description=message.content if message.content else "No text",
-            color=0x00ff88,
-            timestamp=message.created_at
-        )
+    # 📤 FINAL CLEAN EMBED
+    embed = discord.Embed(color=0x00ff88)
 
-        if images:
-            embed.set_image(url=images[0])
+    embed.set_image(url=image_url)
 
-        if urls:
-            embed.add_field(name="🔗 Links", value="\n".join(urls), inline=False)
+    if final_url:
+        embed.description = final_url
 
-        await main.send(embed=embed, view=view)
+    await main.send(embed=embed, view=view)
 
+
+# ❗ error show karega
 @bot.event
 async def on_command_error(ctx, error):
     await ctx.send(f"❌ Error: {error}")
+
 
 bot.run(TOKEN)
