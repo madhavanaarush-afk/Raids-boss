@@ -37,49 +37,28 @@ async def remove(ctx, channel_id: int):
 # ================= RAID COMMAND =================
 @bot.command()
 async def raid(ctx):
+    await ctx.send("Raid command working ✅")  # tu apna full text yahan daal sakta hai
 
-    text = """## Fire
-★★★ **Reshiram** (hp/spatk) - z move (Blue Flare) | item: firium z
-★★★ **Heatran** (hp/spatk) - z move (Eruption) | item: firium z
-★☆☆ **Primal Groudon** (hp/spatk) - Move (Eruption)
 
-## Psychic
-★★★ **Mega Shadow Mewtwo Y** - Move: (Future Sight)
-★★★ **Dawn Necrozma** (hp/spatk) - z move (Photon geyser) | item: ultranecrozium z
-★☆☆ **Ultra Necrozma** (hp/spatk) - z move (Photon geyser) | item: ultranecrozium z
+# ================= DM CLEAN COMMAND =================
+@bot.command(name="removeallmessages")
+async def remove_all_messages(ctx):
 
-## Ghost
-★★★ **Full Moon Lunala** (hp/spatk) - z move (Moongeist beam) | item: lunalium z
-★★☆ **Dawn Necrozma** (hp/spatk) - z move (Moongeist beam) | item: lunalium z
+    # ❌ sirf DM me chale
+    if not isinstance(ctx.channel, discord.DMChannel):
+        return await ctx.send("❌ Ye command sirf bot ke DM me use karo")
 
-## Steel
-★★★ **Dusk Necrozma** (hp/atk) - z move (Sunsteel strike) | item: solganium z
-★☆☆ **Jirachi** (hp/spatk) - z move (Doom desire) | item: steelium z
-★☆☆ **Gigantamax Melmetal** (hp/atk) - move (G-max Meltdown)
+    deleted = 0
 
-## Fairy
-★★★ **Magearna** (hp/spatk) - z move (Fleur cannon) | item: fairium z
-★★☆ **Gigantamax Hatterene** (hp/spatk) - move (G-max smite)
+    async for msg in ctx.channel.history(limit=100):
+        if msg.author == bot.user:
+            try:
+                await msg.delete()
+                deleted += 1
+            except:
+                pass
 
-## Flying
-★★★ **Mega Rayquaza** (hp/spatk) - z move (Hurricane) | item: flyinium z
-★★★ **Mega Rayquaza** (hp/atk) - z move (Dragon ascent) | item: flyinium z
-★☆☆ **Ho-oh** (hp/atk) - z move (Sky attack) | item: flyinium z
-★☆☆ **Shadow Lugia** (hp/spatk) - z move (Aeroblast) | item: flyinium z
-★☆☆ **Gigantamax Corviknight** (hp/atk) - move (G-max wind rage)
-
-## Poison
-★★☆ **Eternatus** (hp/spatk) - z move (Sludge bomb) | item: poisonium z
-★☆☆ **Muk** (hp/atk) - z move (Gunk shot) | item: poisonium z
-
-Nature: (hp/atk) **Adamant** | (hp/spatk) **Modest**
-★★★ Most Used
-★★☆ Slightly Used / Good Substitute
-★☆☆ Least Used
-*?tag raidmeta2 for page 2*
-"""
-
-    await ctx.send(text)
+    await ctx.send(f"🧹 Deleted {deleted} messages")
 
 
 # ================= JOIN BUTTON =================
@@ -118,11 +97,10 @@ class JoinView(discord.ui.View):
 @bot.event
 async def on_message(message):
 
-    # ❌ ignore self
     if message.author == bot.user:
         return
 
-    # 🌸 GLOBAL (same channel)
+    # 🌸 GLOBAL
     if message.content.lower() in ["global", "globals"]:
         embed = discord.Embed(title="🌸 Global Timing", color=0x2b2d31)
 
@@ -143,7 +121,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-    # ================= FORWARD SYSTEM =================
+    # ================= FORWARD =================
 
     if not message.author.bot:
         return
