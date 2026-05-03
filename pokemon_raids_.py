@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 import os
 
-# 🔐 TOKEN (Railway ENV)
 TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
@@ -10,10 +9,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="?", intents=intents)
 
-# 👉 MAIN CHANNEL ID (yahan sab forward hoga)
 MAIN_CHANNEL_ID = 1484694223578988564
-
-# 👉 watch channels
 watch_channels = set()
 
 
@@ -29,52 +25,22 @@ async def add(ctx, channel_id: int):
     watch_channels.add(channel_id)
     await ctx.send(f"✅ Added {channel_id}")
 
-
 @bot.command()
 async def remove(ctx, channel_id: int):
     watch_channels.discard(channel_id)
     await ctx.send(f"❌ Removed {channel_id}")
 
 
-# ================= JOIN BUTTON =================
-class JoinView(discord.ui.View):
-    def __init__(self, source_guild_id):
-        super().__init__(timeout=None)
-        self.source_guild_id = source_guild_id
-
-    @discord.ui.button(label="🚀 Join Server", style=discord.ButtonStyle.green)
-    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
-
-        guild = bot.get_guild(self.source_guild_id)
-
-        if not guild:
-            return await interaction.response.send_message("❌ Server not found", ephemeral=True)
-
-        channel = None
-        for ch in guild.text_channels:
-            if ch.permissions_for(guild.me).create_instant_invite:
-                channel = ch
-                break
-
-        if not channel:
-            return await interaction.response.send_message("❌ No invite permission", ephemeral=True)
-
-        invite = await channel.create_invite(max_age=300, max_uses=1)
-
-        try:
-            await interaction.user.send(f"🔗 {invite.url}")
-            await interaction.response.send_message("📩 Check your DM!", ephemeral=True)
-        except:
-            await interaction.response.send_message("❌ Enable DMs", ephemeral=True)
-
-
-# ================= MESSAGE SYSTEM =================
+# ================= GLOBAL TRIGGER (WITHOUT PREFIX) =================
 @bot.event
 async def on_message(message):
 
-    # 🌸 GLOBAL COMMAND
+    # 🌸 GLOBAL COMMAND (no prefix)
     if message.content.lower() in ["global", "globals"]:
-        embed = discord.Embed(title="🌸 Global Timing", color=0x2b2d31)
+        embed = discord.Embed(
+            title="🌸 Global Timing",
+            color=0x2b2d31
+        )
 
         embed.description = (
             "**No.  Start → End**\n\n"
@@ -88,14 +54,12 @@ async def on_message(message):
             "➑  `1:00 PM  -  2:30 PM`"
         )
 
-        main = bot.get_channel(MAIN_CHANNEL_ID)
-        if main:
-            await main.send(embed=embed)
+        await message.channel.send(embed=embed)
         return
 
     await bot.process_commands(message)
 
-    # ❌ sirf bot messages forward karega
+    # ================= RAID FORWARD =================
     if not message.author.bot:
         return
 
@@ -108,7 +72,7 @@ async def on_message(message):
 
     embed = discord.Embed(color=0x2b2d31)
 
-    # 📝 text copy
+    # 🔥 EXACT COPY SYSTEM
     if message.content:
         embed.description = message.content
 
@@ -124,10 +88,11 @@ async def on_message(message):
                 embed.description = e.description
 
         for field in e.fields:
-            embed.add_field(name=field.name, value=field.value, inline=field.inline)
-
-        if e.url:
-            embed.url = e.url
+            embed.add_field(
+                name=field.name,
+                value=field.value,
+                inline=field.inline
+            )
 
         if e.image and e.image.url:
             embed.set_image(url=e.image.url)
@@ -146,51 +111,36 @@ async def on_message(message):
     await main.send(embed=embed, view=view)
 
 
-# ================= RAID COMMAND =================
-@bot.command()
-async def raid(ctx):
+# ================= JOIN BUTTON =================
+class JoinView(discord.ui.View):
+    def __init__(self, source_guild_id):
+        super().__init__(timeout=None)
+        self.source_guild_id = source_guild_id
 
-    text = """## Fire
-★★★ **Reshiram** (hp/spatk) - z move (Blue Flare) | item: firium z
-★★★ **Heatran** (hp/spatk) - z move (Eruption) | item: firium z
-★☆☆ **Primal Groudon** (hp/spatk) - Move (Eruption)
+    @discord.ui.button(label="🚀 Join Server", style=discord.ButtonStyle.green)
+    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
 
-## Psychic
-★★★ **Mega Shadow Mewtwo Y** - Move: (Future Sight)
-★★★ **Dawn Necrozma** (hp/spatk) - z move (Photon geyser) | item: ultranecrozium z
-★☆☆ **Ultra Necrozma** (hp/spatk) - z move (Photon geyser) | item: ultranecrozium z
+        guild = bot.get_guild(self.source_guild_id)
 
-## Ghost
-★★★ **Full Moon Lunala** (hp/spatk) - z move (Moongeist beam) | item: lunalium z
-★★☆ **Dawn Necrozma** (hp/spatk) - z move (Moongeist beam) | item: lunalium z
+        if not guild:
+            return await interaction.response.send_message("❌ Source server not found", ephemeral=True)
 
-## Steel
-★★★ **Dusk Necrozma** (hp/atk) - z move (Sunsteel strike) | item: solganium z
-★☆☆ **Jirachi** (hp/spatk) - z move (Doom desire) | item: steelium z
-★☆☆ **Gigantamax Melmetal** (hp/atk) - move (G-max Meltdown)
+        channel = None
+        for ch in guild.text_channels:
+            if ch.permissions_for(guild.me).create_instant_invite:
+                channel = ch
+                break
 
-## Fairy
-★★★ **Magearna** (hp/spatk) - z move (Fleur cannon) | item: fairium z
-★★☆ **Gigantamax Hatterene** (hp/spatk) - move (G-max smite)
+        if not channel:
+            return await interaction.response.send_message("❌ No invite permission", ephemeral=True)
 
-## Flying
-★★★ **Mega Rayquaza** (hp/spatk) - z move (Hurricane) | item: flyinium z
-★★★ **Mega Rayquaza** (hp/atk) - z move (Dragon ascent) | item: flyinium z
-★☆☆ **Ho-oh** (hp/atk) - z move (Sky attack) | item: flyinium z
-★☆☆ **Shadow Lugia** (hp/spatk) - z move (Aeroblast) | item: flyinium z
-★☆☆ **Gigantamax Corviknight** (hp/atk) - move (G-max wind rage)
+        invite = await channel.create_invite(max_age=300, max_uses=1)
 
-## Poison
-★★☆ **Eternatus** (hp/spatk) - z move (Sludge bomb) | item: poisonium z
-★☆☆ **Muk** (hp/atk) - z move (Gunk shot) | item: poisonium z
-
-Nature: (hp/atk) **Adamant** | (hp/spatk) **Modest**
-★★★ Most Used
-★★☆ Slightly Used / Good Substitute
-★☆☆ Least Used
-"""
-
-    await ctx.send(text)
+        try:
+            await interaction.user.send(f"🔗 {invite.url}")
+            await interaction.response.send_message("📩 Check your DM!", ephemeral=True)
+        except:
+            await interaction.response.send_message("❌ Enable DMs", ephemeral=True)
 
 
 # ================= RUN =================
