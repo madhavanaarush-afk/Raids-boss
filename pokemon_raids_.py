@@ -6,10 +6,13 @@ TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.reactions = True
 
 bot = commands.Bot(command_prefix="?", intents=intents)
 
+# 👉 CHANNEL IDs
 MAIN_CHANNEL_ID = 1484694223578988564
+SECOND_CHANNEL_ID = 1484837076741652530  # 🔁 change this
 watch_channels = set()
 
 
@@ -72,6 +75,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+    # ❌ sirf dusre bots
     if not message.author.bot:
         return
 
@@ -94,9 +98,8 @@ async def on_message(message):
         if att.content_type and "image" in att.content_type:
             image_url = att.url
 
-    # 💥 embeds se data extract
+    # 💥 embeds
     for e in message.embeds:
-
         if e.image and e.image.url:
             image_url = e.image.url
 
@@ -112,13 +115,10 @@ async def on_message(message):
         for field in e.fields:
             text_data += f"**{field.name}**\n{field.value}\n\n"
 
-    # ❌ agar image nahi mila → skip
     if not image_url:
         return
 
-    # ✅ CLEAN EMBED
     embed = discord.Embed(color=0x2b2d31)
-
     embed.set_image(url=image_url)
 
     if final_url:
@@ -126,7 +126,39 @@ async def on_message(message):
 
     view = JoinView(message.guild.id)
 
-    await main.send(embed=embed, view=view)
+    sent_msg = await main.send(embed=embed, view=view)
+
+    # ✅ auto react
+    await sent_msg.add_reaction("✅")
+
+
+# ================= REACTION SYSTEM =================
+@bot.event
+async def on_raw_reaction_add(payload):
+
+    if payload.channel_id != MAIN_CHANNEL_ID:
+        return
+
+    if str(payload.emoji) != "✅":
+        return
+
+    if payload.user_id == bot.user.id:
+        return
+
+    channel = bot.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+
+    user = await bot.fetch_user(payload.user_id)
+    if user.bot:
+        return
+
+    second = bot.get_channel(SECOND_CHANNEL_ID)
+    if not second:
+        return
+
+    # 🚀 forward approved message
+    if message.embeds:
+        await second.send(embed=message.embeds[0], view=JoinView(message.guild.id))
 
 
 # ================= RUN =================
