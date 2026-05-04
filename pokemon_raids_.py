@@ -10,10 +10,13 @@ intents.reactions = True
 
 bot = commands.Bot(command_prefix="?", intents=intents)
 
-# 👉 CHANNEL IDs
 MAIN_CHANNEL_ID = 1484694223578988564
-SECOND_CHANNEL_ID = 1484837076741652530  # 🔁 change this
+SECOND_CHANNEL_ID = 1484837076741652530
+
 watch_channels = set()
+
+# 🧠 message storage
+message_store = {}
 
 
 # ================= READY =================
@@ -75,7 +78,6 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-    # ❌ sirf dusre bots
     if not message.author.bot:
         return
 
@@ -121,18 +123,25 @@ async def on_message(message):
     embed = discord.Embed(color=0x2b2d31)
     embed.set_image(url=image_url)
 
-    if final_url:
-        embed.description = f"{final_url}\n\n{text_data}"
+    if final_url or text_data:
+        embed.description = f"{final_url or ''}\n\n{text_data}"
 
     view = JoinView(message.guild.id)
 
     sent_msg = await main.send(embed=embed, view=view)
 
-    # ✅ auto react
+    # 🧠 store full data
+    message_store[sent_msg.id] = {
+        "image": image_url,
+        "url": final_url,
+        "text": text_data,
+        "guild": message.guild.id
+    }
+
     await sent_msg.add_reaction("✅")
 
 
-# ================= REACTION SYSTEM =================
+# ================= REACTION =================
 @bot.event
 async def on_raw_reaction_add(payload):
 
@@ -145,20 +154,23 @@ async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id:
         return
 
-    channel = bot.get_channel(payload.channel_id)
-    message = await channel.fetch_message(payload.message_id)
-
-    user = await bot.fetch_user(payload.user_id)
-    if user.bot:
+    if payload.message_id not in message_store:
         return
+
+    data = message_store[payload.message_id]
 
     second = bot.get_channel(SECOND_CHANNEL_ID)
     if not second:
         return
 
-    # 🚀 forward approved message
-    if message.embeds:
-        await second.send(embed=message.embeds[0], view=JoinView(message.guild.id))
+    embed = discord.Embed(color=0x2b2d31)
+    embed.set_image(url=data["image"])
+
+    embed.description = f"{data['url'] or ''}\n\n{data['text']}"
+
+    view = JoinView(data["guild"])
+
+    await second.send(embed=embed, view=view)
 
 
 # ================= RUN =================
