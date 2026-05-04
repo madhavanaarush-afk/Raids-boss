@@ -13,7 +13,7 @@ intents.guilds = True
 bot = commands.Bot(command_prefix="?", intents=intents)
 
 MAIN_CHANNEL_ID = 1484694223578988564
-FINAL_CHANNEL_ID = 123456789012345678
+FINAL_CHANNEL_ID = 1484837076741652530
 
 watch_channels = set()
 
