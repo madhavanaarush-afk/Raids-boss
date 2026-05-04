@@ -1,7 +1,9 @@
 import discord
 from discord.ext import commands
+import os
 
-TOKEN = "TERA_DISCORD_BOT_TOKEN"
+# 🔐 Railway ENV TOKEN
+TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -80,30 +82,24 @@ class JoinView(discord.ui.View):
 @bot.event
 async def on_message(message):
 
-    # ❌ ignore self
     if message.author.id == bot.user.id:
         return
 
-    # ❌ ignore main + final channel (loop fix)
     if message.channel.id in [MAIN_CHANNEL_ID, FINAL_CHANNEL_ID]:
         return
 
-    # 👤 user commands allow
     if not message.author.bot:
         await bot.process_commands(message)
         return
 
-    # ❌ only selected channels
     if message.channel.id not in watch_channels:
         return
 
-    # ❌ ignore forwarded messages
     if message.embeds:
         for e in message.embeds:
             if e.footer and "forwarded-by-bot" in e.footer.text:
                 return
 
-    # ❌ ignore useless messages
     if not message.embeds and not message.attachments:
         return
 
@@ -113,7 +109,6 @@ async def on_message(message):
 
     embed = discord.Embed(color=0x2b2d31)
 
-    # TEXT
     if message.content:
         embed.description = message.content
 
@@ -142,7 +137,6 @@ async def on_message(message):
             if att.content_type and "image" in att.content_type:
                 embed.set_image(url=att.url)
 
-    # 🔒 mark forwarded
     embed.set_footer(text="forwarded-by-bot")
 
     sent = await main.send(embed=embed, view=JoinView(message.guild.id))
